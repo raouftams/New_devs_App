@@ -1,5 +1,6 @@
 from datetime import datetime
 from decimal import Decimal
+import logging
 from typing import Dict, Any, List
 
 async def calculate_monthly_revenue(property_id: str, month: int, year: int, db_session=None) -> Decimal:
@@ -35,6 +36,7 @@ async def calculate_total_revenue(property_id: str, tenant_id: str) -> Dict[str,
     """
     Aggregates revenue from database.
     """
+    logger = logging.getLogger(__name__)
     try:
         # Import database pool
         from app.core.database_pool import DatabasePool
@@ -44,10 +46,10 @@ async def calculate_total_revenue(property_id: str, tenant_id: str) -> Dict[str,
         await db_pool.initialize()
         
         if db_pool.session_factory:
-            async with db_pool.get_session() as session:
+            async with db_pool.session_factory() as session:
                 # Use SQLAlchemy text for raw SQL
                 from sqlalchemy import text
-                
+                logger.info("✅ Successfully fetched revenue data from database")
                 query = text("""
                     SELECT 
                         property_id,
@@ -57,7 +59,6 @@ async def calculate_total_revenue(property_id: str, tenant_id: str) -> Dict[str,
                     WHERE property_id = :property_id AND tenant_id = :tenant_id
                     GROUP BY property_id
                 """)
-                
                 result = await session.execute(query, {
                     "property_id": property_id, 
                     "tenant_id": tenant_id
